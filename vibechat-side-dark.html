@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>VibeChat — Dark DMs</title>
+  <style>
+    :root{
+      --bg:#0b0d0f;
+      --panel:#0f1113;
+      --sidebar:#0c0d0f;
+      --muted:#9aa3a8;
+      --accent:#0ea5a3; /* teal-ish for sent bubbles */
+      --bubble-other:#1b1f22;
+      --bubble-mine:#08303a;
+      --input:#121416;
+      --badge:#d23b3b;
+      --glass: rgba(255,255,255,0.03);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      height:100vh;
+      font-family:Inter, "Segoe UI", Roboto, system-ui, -apple-system, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg, var(--bg), #050607);
+      color:#e6eef0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+
+    .app {
+      width:100%;
+      max-width:1100px;
+      height:90vh;
+      background:linear-gradient(180deg, #08090a, #0c0d0f);
+      border-radius:12px;
+      display:flex;
+      overflow:hidden;
+      box-shadow:0 20px 50px rgba(2,6,10,0.7);
+    }
+
+    /* Left Sidebar */
+    .sidebar{
+      width:300px;
+      background:var(--sidebar);
+      border-right:1px solid rgba(255,255,255,0.03);
+      display:flex;
+      flex-direction:column;
+    }
+    .sidebar .top{
+      padding:18px;
+      border-bottom:1px solid rgba(255,255,255,0.02);
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .logo{
+      width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#14666a);
+      display:flex;align-items:center;justify-content:center;font-weight:700;
+      box-shadow:0 6px 18px rgba(14,165,163,0.12);
+    }
+    .app-title{font-weight:700;font-size:16px}
+    .login {
+      padding:14px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .login input{
+      flex:1;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);
+      background:var(--glass);color:inherit;outline:none;
+    }
+    .login button{
+      padding:10px 12px;border-radius:8px;border:none;background:var(--accent);color:#031313;font-weight:700;cursor:pointer;
+    }
+
+    .users{
+      flex:1; overflow:auto;
+      padding:10px;
+    }
+    .user {
+      display:flex;align-items:center;justify-content:space-between;
+      padding:10px;border-radius:8px;margin-bottom:8px;cursor:pointer;
+    }
+    .user:hover{background:rgba(255,255,255,0.02)}
+    .user .left{
+      display:flex;gap:10px;align-items:center;
+    }
+    .avatar{
+      width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#162024,#0b2b30);display:flex;align-items:center;justify-content:center;font-weight:700;
+    }
+    .meta{display:flex;flex-direction:column}
+    .meta .name{font-weight:600}
+    .meta .small{color:var(--muted);font-size:13px}
+    .user .right{display:flex;align-items:center;gap:8px}
+    .badge{
+      min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--badge);display:inline-flex;align-items:center;justify-content:center;font-size:12px;color:white;
+    }
+
+    /* Chat Panel */
+    .chat{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      background:var(--panel);
+    }
+    .chat-header{
+      padding:16px;border-bottom:1px solid rgba(255,255,255,0.02);display:flex;align-items:center;gap:12px;
+    }
+    .chat-header .name{
+      font-weight:700;font-size:16px;
+    }
+    .lastseen{color:var(--muted);font-size:13px}
+
+    .messages{
+      flex:1; padding:18px; overflow:auto; display:flex;flex-direction:column; gap:10px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
+    }
+
+    .bubble{
+      max-width:78%;
+      padding:10px 14px;
+      border-radius:14px;
+      color:#e6eef0;
+      line-height:1.3;
+      word-wrap:break-word;
+    }
+    .bubble.other{
+      background:var(--bubble-other);
+      align-self:flex-start;
+      border-top-left-radius:6px;
+    }
+    .bubble.me{
+      background:linear-gradient(180deg,var(--bubble-mine), #064248);
+      align-self:flex-end;
+      border-top-right-radius:6px;
+    }
+    .bubble .time{display:block;font-size:12px;color:var(--muted);margin-top:6px}
+
+    .inputbar{
+      padding:12px;border-top:1px solid rgba(255,255,255,0.02);display:flex;gap:8px;background:var(--input);
+    }
+    .msg-input{
+      flex:1;background:transparent;border-radius:10px;padding:10px;border:1px solid rgba(255,255,255,0.04);color:inherit;outline:none;
+    }
+    .send-btn{
+      background:var(--accent);border:none;padding:10px 14px;border-radius:10px;color:#021212;font-weight:700;cursor:pointer;
+    }
+
+    /* Empty state */
+    .empty{
+      display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:16px;
+    }
+
+    @media (max-width:800px){
+      .app{flex-direction:column;height:95vh}
+      .sidebar{width:100%;height:220px;border-right:none;border-bottom:1px solid rgba(255,255,255,0.02)}
+      .chat{height:calc(100% - 220px)}
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="sidebar">
+      <div class="top">
+        <div class="logo">VC</div>
+        <div>
+          <div class="app-title">VibeChat</div>
+          <div style="font-size:12px;color:var(--muted)">Private DMs — Dark</div>
+        </div>
+      </div>
+
+      <div class="login">
+        <input id="usernameInput" placeholder="Enter your name..." />
+        <button id="joinBtn">Join</button>
+      </div>
+
+      <div class="users" id="userList">
+        <!-- dynamic users -->
+      </div>
+    </div>
+
+    <div class="chat" id="chatPanel">
+      <div class="chat-header" id="chatHeader" style="display:none">
+        <div class="avatar" id="chatAvatar">U</div>
+        <div style="flex:1">
+          <div class="name" id="chatName">Select a user</div>
+          <div class="lastseen" id="chatLastSeen">last seen —</div>
+        </div>
+      </div>
+
+      <div class="messages" id="messagesArea">
+        <div class="empty" id="emptyState">Select a user on the left to start chatting</div>
+      </div>
+
+      <div class="inputbar" id="inputBar" style="display:none">
+        <input id="msgInput" class="msg-input" placeholder="Type a message..." />
+        <button id="sendBtn" class="send-btn">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, set, onValue, push, onChildAdded, onDisconnect, remove, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAr8MukZacV1SKgm8m4gnOuNjaJqxchChg",
+      authDomain: "chat-app-a8b5f.firebaseapp.com",
+      projectId: "chat-app-a8b5f",
+      storageBucket: "chat-app-a8b5f.appspot.com",
+      messagingSenderId: "952513797740",
+      appId: "1:952513797740:web:25c2d8221e3106cef40249",
+      measurementId: "G-ZRX9FL4WCG",
+      databaseURL: "https://chat-app-a8b5f-default-rtdb.firebaseio.com"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const onlineRef = ref(db, "online");
+    const lastSeenRefRoot = ref(db, "lastSeen");
+    const unreadRoot = ref(db, "unread");
+
+    let username = "";
+    let selectedUser = "";
+    let messagesListeners = {}; // to track chat listeners
+
+    // DOM
+    const joinBtn = document.getElementById("joinBtn");
+    const usernameInput = document.getElementById("usernameInput");
+    const userList = document.getElementById("userList");
+    const chatHeader = document.getElementById("chatHeader");
+    const chatName = document.getElementById("chatName");
+    const chatLastSeen = document.getElementById("chatLastSeen");
+    const chatAvatar = document.getElementById("chatAvatar");
+    const messagesArea = document.getElementById("messagesArea");
+    const inputBar = document.getElementById("inputBar");
+    const msgInput = document.getElementById("msgInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const emptyState = document.getElementById("emptyState");
+
+    // Helpers
+    function formatLastSeen(ts){
+      if (!ts) return "unknown";
+      const d = new Date(ts);
+      const now = Date.now();
+      const diff = Math.floor((now - ts) / 1000);
+      if (diff < 60) return "online";
+      if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+      return d.toLocaleString();
+    }
+
+    function getChatId(a,b){ return [a,b].sort().join("_"); }
+
+    // Request permission for notifications on load interaction
+    function ensureNotificationPermission(){
+      if (Notification && Notification.permission !== "granted"){
+        Notification.requestPermission();
+      }
+    }
+
+    joinBtn.onclick = async () => {
+      const name = usernameInput.value.trim();
+      if (!name) return alert("Please enter a name.");
+      // check taken
+      const snap = await get(onlineRef);
+      const users = snap.val() || {};
+      if (users[name]) return alert("That name is already taken. Pick another.");
+
+      username = name;
+      ensureNotificationPermission();
+
+      // set online and lastSeen
+      set(ref(db, "online/" + username), true);
+      set(ref(db, "lastSeen/" + username), Date.now());
+      const userStatusRef = ref(db, "online/" + username);
+      onDisconnect(userStatusRef).remove();
+
+      // remove on unload
+      window.addEventListener("beforeunload", () => {
+        remove(ref(db, "online/" + username));
+        set(ref(db, "lastSeen/" + username), Date.now());
+      });
+
+      // UI changes
+      document.querySelector(".login").style.display = "none";
+
+      // Listen for users
+      onValue(onlineRef, (s) => {
+        const val = s.val() || {};
+        renderUserList(val);
+      });
+
+      // Listen for lastSeen changes to show last seen in header when selected
+      onValue(ref(db, "lastSeen"), (s) => {
+        if (!selectedUser) return;
+        const ls = s.val() || {};
+        chatLastSeen.textContent = "last seen — " + formatLastSeen(ls[selectedUser]);
+      });
+
+      // Listen unread root for this user to show badges
+      onValue(ref(db, "unread/" + username), (snapUnread) => {
+        const data = snapUnread.val() || {};
+        // update badges
+        document.querySelectorAll("#userList .user").forEach(li=>{
+          const other = li.getAttribute("data-username");
+          const badge = li.querySelector(".badge");
+          if (data[other] && data[other] > 0){
+            if (badge) badge.textContent = data[other] > 9 ? "9+" : data[other];
+            else {
+              const b = document.createElement("div"); b.className="badge"; b.textContent = data[other] > 9 ? "9+" : data[other];
+              li.querySelector(".right").appendChild(b);
+            }
+          } else {
+            if (badge) badge.remove();
+          }
+        });
+      });
+
+      // Global messages listener to trigger notifications for chats where modal not open
+      onValue(ref(db, "messages"), (snapMessages) => {
+        const all = snapMessages.val() || {};
+        Object.keys(all).forEach(chatId => {
+          if (!chatId.includes("_")) return;
+          if (!username) return;
+          const parts = chatId.split("_");
+          if (!parts.includes(username)) return;
+          const other = parts[0] === username ? parts[1] : parts[0];
+          const msgs = all[chatId] || {};
+          const keys = Object.keys(msgs);
+          if (!keys.length) return;
+          const last = msgs[keys[keys.length-1]];
+          if (!last) return;
+          // if last.sender is other and chat not open, notify
+          if (last.sender === other && selectedUser !== other && Notification.permission === "granted"){
+            new Notification(`New message from ${other}`, { body: last.text });
+          }
+        });
+      });
+    };
+
+    function renderUserList(onlineUsers){
+      userList.innerHTML = "";
+      // merge onlineUsers with lastSeen list
+      get(ref(db, "lastSeen")).then(snap => {
+        const lastSeenAll = snap.val() || {};
+        const users = Object.keys(onlineUsers || {}).sort((a,b)=>a.localeCompare(b));
+        users.forEach(u=>{
+          if (u === username) return;
+          const li = document.createElement("div");
+          li.className = "user";
+          li.setAttribute("data-username", u);
+          li.onclick = ()=>selectUser(u);
+          const left = document.createElement("div"); left.className="left";
+          const avatar = document.createElement("div"); avatar.className="avatar"; avatar.textContent = u.charAt(0).toUpperCase();
+          const meta = document.createElement("div"); meta.className="meta";
+          const name = document.createElement("div"); name.className="name"; name.textContent = u;
+          const small = document.createElement("div"); small.className="small"; small.textContent = "last seen " + formatLastSeen(lastSeenAll[u]);
+          meta.appendChild(name); meta.appendChild(small);
+          left.appendChild(avatar); left.appendChild(meta);
+
+          const right = document.createElement("div"); right.className="right";
+          // badge handled by unread listener
+          li.appendChild(left); li.appendChild(right);
+          userList.appendChild(li);
+        });
+
+        // also show offline users that have lastSeen entries but not in online list
+        const offlineCandidates = Object.keys(lastSeenAll || {}).filter(u=>!users.includes(u) && u!==username).sort();
+        offlineCandidates.forEach(u=>{
+          const li = document.createElement("div");
+          li.className = "user";
+          li.setAttribute("data-username", u);
+          li.onclick = ()=>selectUser(u);
+          const left = document.createElement("div"); left.className="left";
+          const avatar = document.createElement("div"); avatar.className="avatar"; avatar.textContent = u.charAt(0).toUpperCase();
+          const meta = document.createElement("div"); meta.className="meta";
+          const name = document.createElement("div"); name.className="name"; name.textContent = u;
+          const small = document.createElement("div"); small.className="small"; small.textContent = "last seen " + formatLastSeen(lastSeenAll[u]);
+          meta.appendChild(name); meta.appendChild(small);
+          left.appendChild(avatar); left.appendChild(meta);
+          const right = document.createElement("div"); right.className="right";
+          li.appendChild(left); li.appendChild(right);
+          userList.appendChild(li);
+        });
+      });
+    }
+
+    async function selectUser(other){
+      if (!username) return alert("Please join first.");
+      selectedUser = other;
+      chatHeader.style.display = "flex";
+      inputBar.style.display = "flex";
+      chatName.textContent = other;
+      chatAvatar.textContent = other.charAt(0).toUpperCase();
+
+      // update last seen display for selected
+      const snapLast = await get(ref(db, "lastSeen/" + other));
+      chatLastSeen.textContent = "last seen — " + formatLastSeen(snapLast.val());
+
+      // Clear messages area and attach listener for this chat
+      messagesArea.innerHTML = "";
+      emptyState.style.display = "none";
+
+      // clear unread count for selected user in DB
+      set(ref(db, "unread/" + username + "/" + other), 0);
+
+      // detach previous listener if any
+      const chatId = getChatId(username, other);
+      if (messagesListeners[chatId]) {
+        // nothing to remove easily with onChildAdded wrapper; for simplicity we allow multiple listeners but we guard against duplicate rendering by clearing messagesArea first
+      }
+
+      const messagesRef = ref(db, "messages/" + chatId);
+      onChildAdded(messagesRef, (snap) => {
+        const data = snap.val();
+        if (!data) return;
+        const bubble = document.createElement("div");
+        bubble.className = "bubble " + (data.sender === username ? "me" : "other");
+        const textNode = document.createElement("div");
+        textNode.textContent = data.text;
+        const timeNode = document.createElement("div");
+        timeNode.className = "time";
+        const dt = new Date(data.timestamp || Date.now());
+        timeNode.textContent = dt.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        bubble.appendChild(textNode);
+        bubble.appendChild(timeNode);
+        messagesArea.appendChild(bubble);
+        messagesArea.scrollTop = messagesArea.scrollHeight;
+      });
+
+      // mark this listener (simple record)
+      messagesListeners[chatId] = true;
+    }
+
+    sendBtn.onclick = () => {
+      const text = msgInput.value.trim();
+      if (!text || !selectedUser) return;
+      const chatId = getChatId(username, selectedUser);
+      const chatRef = ref(db, "messages/" + chatId);
+      push(chatRef, { sender: username, text: text, timestamp: Date.now() });
+
+      // increment recipient unread
+      const recipientUnreadRef = ref(db, "unread/" + selectedUser + "/" + username);
+      get(recipientUnreadRef).then(snap => {
+        const cur = snap.val() || 0;
+        set(recipientUnreadRef, cur + 1);
+      });
+
+      // update our lastSeen
+      set(ref(db, "lastSeen/" + username), Date.now());
+      msgInput.value = "";
+    };
+
+    // If user types enter in input
+    msgInput.addEventListener("keydown", (e)=>{
+      if (e.key === "Enter") { e.preventDefault(); sendBtn.click(); }
+    });
+
+    // make sure to set lastSeen periodically while user is active
+    setInterval(()=>{ if (username) set(ref(db, "lastSeen/" + username), Date.now()); }, 30_000);
+
+    // Small UX: clicking the logo focuses input
+    document.querySelector(".logo").addEventListener("click", ()=>usernameInput.focus());
+  </script>
+</body>
+</html>
